@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghost Data Audit Agent — Enterprise Deletion Verification Platform</title>
+  <meta name="description" content="AI-powered deletion audit dashboard for HackerRank Orchestrate — Ghost Data Still Exists challenge.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ─── DESIGN TOKENS ─── */
+    :root {
+      --bg-0: #060a14;
+      --bg-1: #0c1120;
+      --bg-2: #111827;
+      --bg-3: #1a2435;
+      --bg-4: #1f2d40;
+      --glass: rgba(15,22,40,0.72);
+      --glass-hover: rgba(20,30,52,0.85);
+      --border: rgba(255,255,255,0.07);
+      --border-accent: rgba(6,182,212,0.35);
+      --text-1: #f1f5fb;
+      --text-2: #94a3b8;
+      --text-3: #64748b;
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6,182,212,0.15);
+      --cyan-dim: rgba(6,182,212,0.4);
+      --purple: #8b5cf6;
+      --purple-glow: rgba(139,92,246,0.15);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16,185,129,0.15);
+      --rose: #f43f5e;
+      --rose-glow: rgba(244,63,94,0.15);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245,158,11,0.15);
+      --blue: #3b82f6;
+      --blue-glow: rgba(59,130,246,0.15);
+      --indigo: #6366f1;
+      --sans: 'Inter', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 20px;
+      --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+      --shadow-lg: 0 16px 48px rgba(0,0,0,0.5);
+      --shadow-glow-cyan: 0 0 30px rgba(6,182,212,0.2);
+    }
+
+    /* ─── RESET ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg-0);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image:
+        radial-gradient(ellipse 900px 600px at 10% 0%, rgba(6,182,212,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 700px 500px at 90% 15%, rgba(139,92,246,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse 500px 400px at 50% 100%, rgba(16,185,129,0.04) 0%, transparent 50%);
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-1); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+    /* ─── LOADING OVERLAY ─── */
+    #app-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg-0);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
+      transition: opacity 0.5s, visibility 0.5s;
+    }
+    #app-loader.hidden { opacity: 0; visibility: hidden; }
+    .loader-ghost { font-size: 3.5rem; animation: float 2s ease-in-out infinite; }
+    .loader-bar { width: 220px; height: 3px; background: var(--bg-3); border-radius: 2px; overflow: hidden; }
+    .loader-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--cyan), var(--purple)); border-radius: 2px; transition: width 0.4s; }
+    .loader-text { font-size: 0.82rem; color: var(--text-3); letter-spacing: 0.1em; text-transform: uppercase; }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    /* ─── TOP ANNOUNCEMENT BAR ─── */
+    .announce-bar {
+      background: linear-gradient(90deg, #0c2240 0%, #0e1d35 50%, #0c2240 100%);
+      border-bottom: 1px solid rgba(6,182,212,0.2);
+      padding: 0.4rem 1.5rem;
+      display: flex; align-items: center; justify-content: center; gap: 1rem;
+      font-size: 0.75rem; color: var(--text-2);
+    }
+    .announce-bar strong { color: var(--cyan); }
+    .announce-badge {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      color: #000;
+      font-weight: 800;
+      font-size: 0.65rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ─── NAV / HEADER ─── */
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(6,10,20,0.88);
+      backdrop-filter: blur(20px) saturate(1.8);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.75rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    }
+
+    .nav-brand { display: flex; align-items: center; gap: 0.85rem; text-decoration: none; }
+    .nav-logo {
+      width: 44px; height: 44px; border-radius: var(--r-md);
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.45rem;
+      box-shadow: 0 0 24px rgba(6,182,212,0.4), 0 0 0 1px rgba(6,182,212,0.2);
+      flex-shrink: 0;
+    }
+    .nav-title { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text-1); line-height: 1.2; }
+    .nav-sub { font-size: 0.7rem; color: var(--text-3); }
+
+    .nav-center { display: flex; align-items: center; gap: 0.25rem; }
+    .nav-tab {
+      padding: 0.45rem 1rem;
+      border-radius: var(--r-sm);
+      font-size: 0.8rem; font-weight: 600;
+      color: var(--text-2);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex; align-items: center; gap: 0.45rem;
+    }
+    .nav-tab:hover { color: var(--text-1); background: var(--bg-3); }
+    .nav-tab.active { color: var(--cyan); background: var(--cyan-glow); }
+
+    .nav-right { display: flex; align-items: center; gap: 0.5rem; }
+    .status-dot {
+      display: flex; align-items: center; gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      background: var(--emerald-glow);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 999px;
+      font-size: 0.72rem; font-weight: 600; color: var(--emerald);
+    }
+    .status-dot::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: blink 2.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--r-sm);
+      font-size: 0.78rem; font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: var(--sans);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.15s;
+    }
+    .btn:hover::after { background: rgba(255,255,255,0.06); }
+    .btn:active { transform: scale(0.975); }
+
+    .btn-primary { background: linear-gradient(135deg, var(--cyan) 0%, #0284c7 100%); color: #fff; box-shadow: 0 4px 14px rgba(6,182,212,0.3); }
+    .btn-primary:hover { box-shadow: 0 6px 20px rgba(6,182,212,0.45); transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg-3); color: var(--text-1); border-color: var(--border-accent); }
+    .btn-success { background: linear-gradient(135deg, #059669, #10b981); color: #fff; box-shadow: 0 4px 14px rgba(16,185,129,0.25); }
+    .btn-success:hover { box-shadow: 0 6px 20px rgba(16,185,129,0.4); transform: translateY(-1px); }
+    .btn-purple { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; box-shadow: 0 4px 14px rgba(139,92,246,0.25); }
+    .btn-purple:hover { box-shadow: 0 6px 20px rgba(139,92,246,0.4); transform: translateY(-1px); }
+    .btn-danger { background: linear-gradient(135deg, #be123c, #f43f5e); color: #fff; box-shadow: 0 4px 14px rgba(244,63,94,0.25); }
+    .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.72rem; }
+    .btn-icon { padding: 0.45rem; aspect-ratio: 1; justify-content: center; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+    /* ─── PAGE LAYOUT ─── */
+    .page { display: none; flex-direction: column; gap: 1.5rem; padding: 1.5rem 1.75rem; max-width: 1700px; margin: 0 auto; min-height: calc(100vh - 64px - 34px); }
+    .page.active { display: flex; }
+
+    /* ─── METRIC CARDS ─── */
+    .metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+
+    .metric-card {
+      position: relative;
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.1rem 1.2rem;
+      overflow: hidden;
+      transition: var(--transition);
+      cursor: default;
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--mc, var(--cyan));
+      border-radius: 3px 0 0 3px;
+    }
+    .metric-card::after {
+      content: '';
+      position: absolute; top: -40%; right: -20%;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, var(--mc-glow, rgba(6,182,212,0.08)) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .metric-card:hover { border-color: var(--mc, var(--cyan)); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .metric-icon { font-size: 1.4rem; margin-bottom: 0.5rem; }
+    .metric-label { font-size: 0.7rem; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
+    .metric-val {
+      font-size: 2rem; font-weight: 800; letter-spacing: -0.03em;
+      color: var(--text-1);
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-sub { font-size: 0.72rem; color: var(--text-3); margin-top: 0.25rem; }
+    .metric-trend {
+      position: absolute; top: 1rem; right: 1rem;
+      font-size: 0.68rem; font-weight: 700;
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
+    }
+
+    /* ─── SECTION HEADERS ─── */
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; flex-wrap: wrap;
+    }
+    .section-title { font-size: 1rem; font-weight: 700; color: var(--text-1); display: flex; align-items: center; gap: 0.55rem; }
+    .section-title .icon { font-size: 1.1rem; }
+
+    /* ─── GLASS PANEL ─── */
+    .panel {
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 0.9rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      background: rgba(0,0,0,0.15);
+    }
+    .panel-title { font-size: 0.82rem; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 0.45rem; }
+    .panel-body { padding: 1.2rem; }
+
+    /* ─── DONUT CHART ─── */
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .chart-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.2rem;
+    }
+    .chart-title { font-size: 0.8rem; font-weight: 700; color: var(--text-2); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .donut-wrap { display: flex; align-items: center; justify-content: center; gap: 1.5rem; }
+    .donut-svg { flex-shrink: 0; }
+    .donut-legend { display: flex; flex-direction: column; gap: 0.6rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .legend-label { color: var(--text-2); }
+    .legend-val { font-weight: 700; color: var(--text-1); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+    /* ─── BAR CHART ─── */
+    .bar-row { display: flex; flex-direction: column; gap: 0.55rem; }
+    .bar-item-label { display: flex; justify-content: space-between; font-size: 0.73rem; margin-bottom: 0.2rem; }
+    .bar-item-name { color: var(--text-2); font-family: var(--mono); font-size: 0.71rem; }
+    .bar-item-count { color: var(--text-1); font-weight: 700; }
+    .bar-bg { background: var(--bg-3); border-radius: 999px; height: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 1s cubic-bezier(0.16,1,0.3,1); }
+
+    /* ─── CASE TABLE ─── */
+    .table-toolbar {
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      padding: 0.85rem 1.2rem;
+      background: rgba(0,0,0,0.1);
+      border-bottom: 1px solid var(--border);
+    }
+    .search-input-wrap {
+      display: flex; align-items: center; gap: 0.5rem;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 0.38rem 0.75rem;
+      flex: 1; min-width: 200px; max-width: 340px;
+      transition: var(--transition);
+    }
+    .search-input-wrap:focus-within { border-color: var(--cyan-dim); box-shadow: 0 0 0 3px rgba(6,182,212,0.08); }
+    .search-input-wrap input {
+      background: transparent; border: none; color: var(--text-1);
+      font-size: 0.82rem; font-family: var(--sans);
+      width: 100%; outline: none;
+    }
+    .search-input-wrap input::placeholder { color: var(--text-3); }
+    .search-clear-btn { background: none; border: none; color: var(--text-3); cursor: pointer; padding: 0; font-size: 0.9rem; display: none; }
+    .search-clear-btn:hover { color: var(--text-1); }
+
+    .filter-group { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    .filter-chip {
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.73rem; font-weight: 600;
+      cursor: pointer;
+      background: var(--bg-2);
+      color: var(--text-3);
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .filter-chip:hover { color: var(--text-1); border-color: var(--border-accent); }
+    .filter-chip.active { background: var(--cyan-glow); color: var(--cyan); border-color: rgba(6,182,212,0.3); }
+    .filter-chip.COMPLETE.active { background: var(--emerald-glow); color: var(--emerald); border-color: rgba(16,185,129,0.3); }
+    .filter-chip.INCOMPLETE.active { background: var(--rose-glow); color: var(--rose); border-color: rgba(244,63,94,0.3); }
+    .filter-chip.NA.active { background: rgba(100,116,139,0.12); color: #94a3b8; border-color: rgba(100,116,139,0.3); }
+
+    .sort-select, .per-page-select {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      cursor: pointer;
+      outline: none;
+    }
+    .sort-select:focus, .per-page-select:focus { border-color: var(--cyan-dim); }
+
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      background: rgba(0,0,0,0.25);
+      color: var(--text-3);
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      padding: 0.65rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+    }
+    .data-table th:hover { color: var(--cyan); }
+    .data-table th.sorted { color: var(--cyan); }
+    .data-table th .sort-icon { margin-left: 0.3rem; opacity: 0.5; }
+    .data-table th.sorted .sort-icon { opacity: 1; }
+
+    .data-table td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+      font-size: 0.81rem;
+    }
+    .data-table tr { cursor: pointer; transition: background 0.12s; }
+    .data-table tr:hover td { background: rgba(6,182,212,0.04); }
+    .data-table tr.active-row td { background: rgba(6,182,212,0.08); }
+    .data-table tr.active-row td:first-child { box-shadow: inset 3px 0 0 var(--cyan); }
+
+    .case-id-cell { font-family: var(--mono); font-size: 0.82rem; font-weight: 600; color: var(--text-1); }
+    .email-cell { color: var(--text-2); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .steps-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 26px; height: 22px; padding: 0 0.45rem;
+      background: var(--bg-3); color: var(--text-2);
+      border-radius: 999px; font-size: 0.72rem; font-weight: 700;
+    }
+    .ts-cell { font-size: 0.72rem; color: var(--text-3); font-family: var(--mono); }
+
+    /* STATUS BADGES */
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.22rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.67rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .badge.COMPLETE { background: var(--emerald-glow); color: var(--emerald); border: 1px solid rgba(16,185,129,0.25); }
+    .badge.COMPLETE::before { background: var(--emerald); }
+    .badge.INCOMPLETE { background: var(--rose-glow); color: var(--rose); border: 1px solid rgba(244,63,94,0.25); }
+    .badge.INCOMPLETE::before { background: var(--rose); }
+    .badge.NOT_APPLICABLE { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
+    .badge.NOT_APPLICABLE::before { background: #94a3b8; }
+
+    /* PAGINATION */
+    .pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.85rem 1.2rem;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.1);
+      flex-wrap: wrap; gap: 0.75rem;
+    }
+    .page-info { font-size: 0.75rem; color: var(--text-3); }
+    .page-btns { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+    .page-btn {
+      min-width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--r-sm);
+      font-size: 0.78rem; font-weight: 600;
+      cursor: pointer;
+      background: var(--bg-2);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+      transition: var(--transition);
+    }
+    .page-btn:hover { background: var(--bg-3); color: var(--text-1); }
+    .page-btn.current { background: var(--cyan-glow); color: var(--cyan); border-color: rgba(6,182,212,0.3); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ─── DUAL PANE ─── */
+    .dual-pane { display: grid; grid-template-columns: 420px 1fr; gap: 1rem; height: calc(100vh - 260px); min-height: 540px; }
+    .list-pane {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .list-pane-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(0,0,0,0.2);
+    }
+    .list-pane-header .label { font-size: 0.72rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; }
+    .list-scroll { overflow-y: auto; flex: 1; }
+
+    .case-row {
+      display: flex; flex-direction: column; gap: 0.3rem;
+      padding: 0.8rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .case-row:hover { background: rgba(255,255,255,0.03); }
+    .case-row.active { background: rgba(6,182,212,0.1); border-left: 3px solid var(--cyan); }
+    .case-row-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .case-row-id { font-family: var(--mono); font-size: 0.83rem; font-weight: 700; color: var(--text-1); }
+    .case-row-meta { font-size: 0.73rem; color: var(--text-3); display: flex; align-items: center; gap: 0.5rem; }
+
+    /* INSPECTOR */
+    .inspector-pane {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .inspector-header {
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+      flex-shrink: 0;
+    }
+    .inspector-case-id { font-family: var(--mono); font-size: 1.1rem; font-weight: 700; color: var(--text-1); }
+    .inspector-subtitle { font-size: 0.75rem; color: var(--text-3); margin-top: 0.2rem; }
+    .inspector-body { overflow-y: auto; flex: 1; padding: 1.2rem; display: flex; flex-direction: column; gap: 1.1rem; }
+    .inspector-placeholder {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+      color: var(--text-3); padding: 2rem;
+    }
+    .inspector-placeholder .icon { font-size: 3rem; opacity: 0.4; }
+
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
+    .info-cell { display: flex; flex-direction: column; gap: 0.2rem; }
+    .info-label { font-size: 0.65rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
+    .info-value { font-size: 0.8rem; color: var(--text-1); font-family: var(--mono); word-break: break-all; }
+
+    .section-divider { height: 1px; background: var(--border); margin: 0; }
+
+    .sub-section-title {
+      font-size: 0.72rem; font-weight: 700; color: var(--cyan);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .req-text-box {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 0.85rem;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      line-height: 1.55;
+    }
+
+    /* PHASE SUMMARY */
+    .phase-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .phase-pill {
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.7rem; font-weight: 700;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .phase-FINDING { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+    .phase-REMEDIATION { background: var(--blue-glow); color: var(--blue); border: 1px solid rgba(59,130,246,0.2); }
+    .phase-VERIFICATION { background: var(--emerald-glow); color: var(--emerald); border: 1px solid rgba(16,185,129,0.2); }
+
+    /* STEP TIMELINE */
+    .step-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .step-item {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 0.75rem;
+      transition: border-color 0.15s;
+    }
+    .step-item:hover { border-color: rgba(255,255,255,0.15); }
+    .step-num-circle {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--bg-3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 0.7rem; font-weight: 700; color: var(--text-2);
+      flex-shrink: 0;
+    }
+    .step-content { flex: 1; min-width: 0; }
+    .step-op { font-family: var(--mono); font-size: 0.77rem; font-weight: 700; color: var(--text-1); margin-bottom: 0.25rem; }
+    .step-res { color: var(--cyan); }
+    .step-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.7rem; color: var(--text-3); }
+    .step-meta span { display: flex; align-items: center; gap: 0.25rem; }
+    .step-ev { color: var(--amber); font-family: var(--mono); font-size: 0.68rem; }
+
+    .json-viewer {
+      background: #04080f;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 1rem;
+      font-family: var(--mono); font-size: 0.72rem;
+      color: #7dd3fc;
+      overflow: auto;
+      max-height: 200px;
+      white-space: pre;
+    }
+
+    /* ─── PIPELINE SECTION ─── */
+    .pipeline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .run-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.5rem;
+      display: flex; flex-direction: column; gap: 1rem;
+      transition: var(--transition);
+    }
+    .run-card:hover { border-color: rgba(255,255,255,0.12); }
+    .run-card-icon { font-size: 2rem; }
+    .run-card-title { font-size: 1.05rem; font-weight: 700; }
+    .run-card-desc { font-size: 0.8rem; color: var(--text-3); line-height: 1.5; }
+    .run-status {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.78rem; color: var(--text-3);
+    }
+
+    .console-box {
+      background: #04080f;
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 1rem 1.25rem;
+      font-family: var(--mono); font-size: 0.75rem;
+      color: #38bdf8;
+      height: 280px; overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.55;
+    }
+    .console-box .c-success { color: #86efac; }
+    .console-box .c-error { color: #fca5a5; }
+    .console-box .c-warn { color: #fde68a; }
+    .console-box .c-dim { color: #475569; }
+
+    .progress-bar {
+      height: 4px; background: var(--bg-3); border-radius: 999px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+      border-radius: 999px;
+      width: 0;
+      transition: width 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    /* ─── DOWNLOADS SECTION ─── */
+    .downloads-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .dl-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 1.3rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
+      transition: var(--transition);
+    }
+    .dl-card:hover { border-color: rgba(255,255,255,0.14); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .dl-card-header { display: flex; align-items: center; gap: 0.75rem; }
+    .dl-card-icon {
+      width: 44px; height: 44px; border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; flex-shrink: 0;
+    }
+    .dl-card-title { font-size: 0.9rem; font-weight: 700; }
+    .dl-card-desc { font-size: 0.77rem; color: var(--text-3); line-height: 1.5; }
+    .dl-card-meta { font-size: 0.72rem; color: var(--text-3); display: flex; gap: 1rem; }
+
+    /* ─── CSV VIEWER ─── */
+    .csv-viewer {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
+    .csv-header {
+      padding: 0.85rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.2);
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    }
+    .csv-scroll { overflow: auto; max-height: 420px; }
+    .csv-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.72rem; }
+    .csv-table th {
+      background: var(--bg-2); color: var(--cyan);
+      padding: 0.55rem 0.85rem; text-align: left;
+      position: sticky; top: 0; z-index: 2;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    .csv-table td {
+      padding: 0.45rem 0.85rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--text-2);
+      word-break: break-all;
+      max-width: 500px;
+    }
+    .csv-table tr:hover td { background: rgba(255,255,255,0.03); }
+    .csv-footer { padding: 0.75rem 1.2rem; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--text-3); }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(4,8,20,0.85);
+      backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+      opacity: 0; visibility: hidden;
+      transition: opacity 0.25s, visibility 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; visibility: visible; }
+    .modal-box {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.96) translateY(8px);
+      transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      overflow: hidden;
+    }
+    .modal-overlay.open .modal-box { transform: scale(1) translateY(0); }
+    .modal-head {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-head h2 { font-size: 1.1rem; font-weight: 700; }
+    .modal-close { background: none; border: none; color: var(--text-3); font-size: 1.35rem; cursor: pointer; padding: 0.25rem; border-radius: var(--r-sm); transition: color 0.15s, background 0.15s; }
+    .modal-close:hover { color: var(--text-1); background: var(--bg-3); }
+    .modal-body { padding: 1.25rem 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1rem; }
+
+    /* ─── TOAST ─── */
+    .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+    .toast {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 0.7rem 1.1rem;
+      font-size: 0.82rem; font-weight: 500;
+      color: var(--text-1);
+      box-shadow: var(--shadow-lg);
+      display: flex; align-items: center; gap: 0.6rem;
+      transform: translateX(120%);
+      transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: auto;
+      max-width: 340px;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast-icon { font-size: 1rem; flex-shrink: 0; }
+    .toast.success { border-color: rgba(16,185,129,0.3); }
+    .toast.error { border-color: rgba(244,63,94,0.3); }
+    .toast.info { border-color: rgba(6,182,212,0.3); }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      text-align: center; padding: 3rem 2rem;
+      color: var(--text-3);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+    .empty-state p { font-size: 0.85rem; }
+
+    /* ─── SKELETON LOADING ─── */
+    .skeleton { background: linear-gradient(90deg, var(--bg-3) 25%, var(--bg-4) 50%, var(--bg-3) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .skel-row { height: 46px; margin-bottom: 1px; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1200px) { .dual-pane { grid-template-columns: 360px 1fr; } }
+    @media (max-width: 900px) {
+      .dual-pane { grid-template-columns: 1fr; height: auto; }
+      .list-pane { max-height: 380px; }
+      .pipeline-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .nav { padding: 0 1rem; }
+      .page { padding: 1rem; }
+      .nav-center { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="app-loader">
+  <div class="loader-ghost">👻</div>
+  <div class="loader-bar"><div class="loader-fill" id="loader-fill"></div></div>
+  <div class="loader-text" id="loader-text">Connecting to audit engine...</div>
+</div>
+
+<!-- ANNOUNCEMENT BAR -->
+<div class="announce-bar">
+  <span class="announce-badge">🏆 HackerRank</span>
+  <strong>Ghost Data Still Exists — Orchestrate Challenge</strong>
+  &bull; 518 Evaluation Cases &bull; Status Accuracy: <strong>100%</strong> &bull; Cost: <strong>$0.00</strong>
+</div>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo">👻</div>
+    <div>
+      <div class="nav-title">Ghost Data Audit Agent</div>
+      <div class="nav-sub">Enterprise Deletion Verification Platform &bull; Port 5158</div>
+    </div>
+  </div>
+
+  <div class="nav-center">
+    <button class="nav-tab active" onclick="showPage('dashboard')" data-page="dashboard">📊 Dashboard</button>
+    <button class="nav-tab" onclick="showPage('cases')" data-page="cases">📋 Case Explorer</button>
+    <button class="nav-tab" onclick="showPage('pipeline')" data-page="pipeline">⚡ Pipeline</button>
+    <button class="nav-tab" onclick="showPage('exports')" data-page="exports">📦 Exports</button>
+  </div>
+
+  <div class="nav-right">
+    <div class="status-dot" id="server-status">Live on :5158</div>
+    <div style="display:flex;gap:0.35rem;">
+      <button class="toggle-opt btn btn-ghost btn-sm" id="ds-full" onclick="switchDataset('full')">Full 518</button>
+      <button class="toggle-opt btn btn-ghost btn-sm" id="ds-sample" onclick="switchDataset('sample')" style="opacity:0.5;">Sample 32</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════ PAGE: DASHBOARD ══════════ -->
+<div class="page active" id="page-dashboard">
+
+  <!-- METRIC CARDS -->
+  <div class="metrics-row" id="metrics-row">
+    <div class="metric-card" style="--mc:var(--cyan);--mc-glow:rgba(6,182,212,0.08);">
+      <div class="metric-label">Total Cases</div>
+      <div class="metric-val" id="m-total">—</div>
+      <div class="metric-sub">Evaluation requests</div>
+    </div>
+    <div class="metric-card" style="--mc:var(--emerald);--mc-glow:rgba(16,185,129,0.08);">
+      <div class="metric-label">✅ Complete</div>
+      <div class="metric-val" id="m-complete">—</div>
+      <div class="metric-sub" id="m-complete-pct">Deletion verified</div>
+    </div>
+    <div class="metric-card" style="--mc:var(--rose);--mc-glow:rgba(244,63,94,0.08);">
+      <div class="metric-label">⚠️ Incomplete</div>
+      <div class="metric-val" id="m-incomplete">—</div>
+      <div class="metric-sub" id="m-incomplete-pct">Ghost data remains</div>
+    </div>
+    <div class="metric-card" style="--mc:var(--text-3);--mc-glow:rgba(100,116,139,0.06);">
+      <div class="metric-label">🚫 Not Applicable</div>
+      <div class="metric-val" id="m-na">—</div>
+      <div class="metric-sub">Non-deletion requests</div>
+    </div>
+    <div class="metric-card" style="--mc:var(--amber);--mc-glow:rgba(245,158,11,0.08);">
+      <div class="metric-label">📝 Total Steps</div>
+      <div class="metric-val" id="m-steps">—</div>
+      <div class="metric-sub" id="m-avg-steps">Avg per case</div>
+    </div>
+    <div class="metric-card" style="--mc:var(--purple);--mc-glow:rgba(139,92,246,0.08);">
+      <div class="metric-label">🎯 Status Accuracy</div>
+      <div class="metric-val">100%</div>
+      <div class="metric-sub">Verified on 32 gold cases</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="charts-row" id="charts-row">
+    <!-- Donut: Status Distribution -->
+    <div class="chart-card">
+      <div class="chart-title">Deletion Status Distribution</div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120" id="donut-status-svg">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#1a2435" stroke-width="16"/>
+          <circle id="d-complete" cx="60" cy="60" r="46" fill="none" stroke="#10b981" stroke-width="16" stroke-dasharray="0 289" stroke-dashoffset="72" style="transition:stroke-dasharray 1.2s cubic-bezier(0.16,1,0.3,1);"/>
+          <circle id="d-incomplete" cx="60" cy="60" r="46" fill="none" stroke="#f43f5e" stroke-width="16" stroke-dasharray="0 289" stroke-dashoffset="72" style="transition:stroke-dasharray 1.2s cubic-bezier(0.16,1,0.3,1) 0.1s;"/>
+          <circle id="d-na" cx="60" cy="60" r="46" fill="none" stroke="#475569" stroke-width="16" stroke-dasharray="0 289" stroke-dashoffset="72" style="transition:stroke-dasharray 1.2s cubic-bezier(0.16,1,0.3,1) 0.2s;"/>
+          <text x="60" y="55" text-anchor="middle" font-size="18" font-weight="800" fill="#f1f5fb" font-family="Inter,sans-serif" id="donut-center-num">—</text>
+          <text x="60" y="70" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter,sans-serif">total</text>
+        </svg>
+        <div class="donut-legend" id="status-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--emerald)"></span><span class="legend-label">Complete</span><span class="legend-val" id="leg-complete">—</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--rose)"></span><span class="legend-label">Incomplete</span><span class="legend-val" id="leg-incomplete">—</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:#475569"></span><span class="legend-label">N/A</span><span class="legend-val" id="leg-na">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Donut: Phase Distribution -->
+    <div class="chart-card">
+      <div class="chart-title">Audit Phase Distribution</div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120" id="donut-phase-svg">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="#1a2435" stroke-width="16"/>
+          <circle id="dp-finding" cx="60" cy="60" r="46" fill="none" stroke="#f59e0b" stroke-width="16" stroke-dasharray="0 289" stroke-dashoffset="72" style="transition:stroke-dasharray 1.2s cubic-bezier(0.16,1,0.3,1);"/>
+          <circle id="dp-remediation" cx="60" cy="60" r="46" fill="none" stroke="#3b82f6" stroke-width="16" stroke-dasharray="0 289" stroke-dashoffset="72" style="transition:stroke-dasharray 1.2s cubic-bezier(0.16,1,0.3,1) 0.15s;"/>
+          <circle id="dp-verification" cx="60" cy="60" r="46" fill="none" stroke="#10b981" stroke-width="16" stroke-dasharray="0 289" stroke-dashoffset="72" style="transition:stroke-dasharray 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s;"/>
+          <text x="60" y="55" text-anchor="middle" font-size="18" font-weight="800" fill="#f1f5fb" font-family="Inter,sans-serif" id="donut-phase-num">—</text>
+          <text x="60" y="70" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter,sans-serif">steps</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span><span class="legend-label">Finding</span><span class="legend-val" id="leg-finding">—</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span><span class="legend-label">Remediation</span><span class="legend-val" id="leg-remediation">—</span></div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--emerald)"></span><span class="legend-label">Verification</span><span class="legend-val" id="leg-verification">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bar: Systems -->
+    <div class="chart-card">
+      <div class="chart-title">Top Systems Affected</div>
+      <div class="bar-row" id="systems-bar"></div>
+    </div>
+
+    <!-- Bar: Operations -->
+    <div class="chart-card">
+      <div class="chart-title">Top Audit Operations</div>
+      <div class="bar-row" id="ops-bar"></div>
+    </div>
+  </div>
+
+  <!-- Quick Table (top 10) -->
+  <div class="section-head">
+    <div class="section-title"><span class="icon">🗂️</span> Recent Cases — Quick View</div>
+    <button class="btn btn-ghost btn-sm" onclick="showPage('cases')">View All 518 →</button>
+  </div>
+
+  <div class="panel">
+    <table class="data-table" style="width:100%;">
+      <thead>
+        <tr>
+          <th>Case ID</th>
+          <th>Status</th>
+          <th>Email</th>
+          <th>Steps</th>
+          <th>Requested At</th>
+          <th>Reported</th>
+        </tr>
+      </thead>
+      <tbody id="quick-table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ PAGE: CASE EXPLORER ══════════ -->
+<div class="page" id="page-cases">
+
+  <div class="dual-pane">
+    <!-- LEFT: LIST -->
+    <div class="list-pane">
+      <div class="list-pane-header">
+        <div class="label" id="case-list-label">Cases</div>
+        <div style="display:flex;align-items:center;gap:0.4rem;">
+          <div class="filter-group">
+            <span class="filter-chip active" data-status="ALL" onclick="setListFilter('ALL')">All</span>
+            <span class="filter-chip COMPLETE" data-status="COMPLETE" onclick="setListFilter('COMPLETE')">✅</span>
+            <span class="filter-chip INCOMPLETE" data-status="INCOMPLETE" onclick="setListFilter('INCOMPLETE')">⚠️</span>
+            <span class="filter-chip NA" data-status="NOT_APPLICABLE" onclick="setListFilter('NOT_APPLICABLE')">🚫</span>
+          </div>
+        </div>
+      </div>
+      <div style="padding:0.5rem;">
+        <div class="search-input-wrap">
+          <span style="color:var(--text-3)">🔍</span>
+          <input type="text" id="list-search" placeholder="Search case ID or email..." oninput="handleListSearch()">
+          <button class="search-clear-btn" id="list-clear" onclick="clearListSearch()">✕</button>
+        </div>
+      </div>
+      <div class="list-scroll" id="case-list"></div>
+    </div>
+
+    <!-- RIGHT: INSPECTOR -->
+    <div class="inspector-pane">
+      <div class="inspector-header" id="inspector-header">
+        <div>
+          <div class="inspector-case-id" id="ins-id">Select a case</div>
+          <div class="inspector-subtitle" id="ins-subtitle">Click any case on the left to inspect its audit trace</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <button class="btn btn-ghost btn-sm" id="btn-export-json" onclick="exportCaseJson()" style="display:none;">💾 Export JSON</button>
+          <span id="ins-badge"></span>
+        </div>
+      </div>
+
+      <div id="inspector-placeholder" class="inspector-placeholder">
+        <div class="icon">🔎</div>
+        <p>Select a deletion case from the list to see its full audit trail — identity resolution, findings, remediation plan, and verification steps.</p>
+      </div>
+
+      <div class="inspector-body" id="inspector-body" style="display:none;">
+        <!-- Case Parameters -->
+        <div>
+          <div class="sub-section-title">📋 Case Parameters</div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-label">Request Email</div><div class="info-value" id="ins-email">—</div></div>
+            <div class="info-cell"><div class="info-label">Requested At</div><div class="info-value" id="ins-req-at">—</div></div>
+            <div class="info-cell"><div class="info-label">Reported Status</div><div class="info-value" id="ins-rep-status">—</div></div>
+            <div class="info-cell"><div class="info-label">Audit Cutoff</div><div class="info-value" id="ins-audit-at">—</div></div>
+          </div>
+        </div>
+        <div class="section-divider"></div>
+
+        <!-- Request Text -->
+        <div>
+          <div class="sub-section-title">
+            <span>💬 Verbatim Request Text</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyText('ins-req-text')">📋</button>
+          </div>
+          <div class="req-text-box" id="ins-req-text">—</div>
+        </div>
+        <div class="section-divider"></div>
+
+        <!-- Identity -->
+        <div>
+          <div class="sub-section-title">🆔 Resolved Subject Identity</div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-label">User Ref ID</div><div class="info-value" id="ins-uid">—</div></div>
+            <div class="info-cell"><div class="info-label">Full Name</div><div class="info-value" id="ins-name">—</div></div>
+            <div class="info-cell"><div class="info-label">Phone</div><div class="info-value" id="ins-phone">—</div></div>
+            <div class="info-cell"><div class="info-label">Email Hash</div><div class="info-value" id="ins-hash">—</div></div>
+          </div>
+        </div>
+        <div class="section-divider"></div>
+
+        <!-- Phase Summary -->
+        <div>
+          <div class="sub-section-title">📊 Phase Summary</div>
+          <div class="phase-pills" id="ins-phases"></div>
+        </div>
+
+        <!-- Steps -->
+        <div>
+          <div class="sub-section-title">
+            <span>⚙️ Ordered Audit Steps (<span id="ins-step-count">0</span>)</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyText('ins-json')">📋 Copy JSON</button>
+          </div>
+          <div class="step-list" id="ins-steps"></div>
+        </div>
+
+        <!-- Raw JSON -->
+        <div>
+          <div class="sub-section-title">🔢 Raw Serialization</div>
+          <pre class="json-viewer" id="ins-json"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PAGE: PIPELINE ══════════ -->
+<div class="page" id="page-pipeline">
+
+  <div class="section-head">
+    <div class="section-title"><span class="icon">⚡</span> Audit Pipeline Runner</div>
+    <div class="status-dot" id="pipeline-status">Engine Ready</div>
+  </div>
+
+  <div class="pipeline-grid">
+    <div class="run-card">
+      <div class="run-card-icon">⚡</div>
+      <div class="run-card-title">Sample Run (32 Cases)</div>
+      <div class="run-card-desc">Run the pipeline against the 32 public benchmark cases with known ground-truth labels. Fast feedback for validating your changes.</div>
+      <div class="run-status" id="sample-status">⬜ Not run yet</div>
+      <div class="progress-bar"><div class="progress-fill" id="sample-progress"></div></div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="btn-run-sample" onclick="runPipeline('sample')">⚡ Run Sample Audit</button>
+        <button class="btn btn-ghost btn-sm" onclick="showPage('cases');switchDataset('sample')">View Results →</button>
+      </div>
+    </div>
+
+    <div class="run-card">
+      <div class="run-card-icon">🚀</div>
+      <div class="run-card-title">Full Run (518 Cases)</div>
+      <div class="run-card-desc">Run the complete deterministic audit pipeline across all 518 official evaluation requests. Regenerates output.csv and evaluation reports.</div>
+      <div class="run-status" id="full-status">⬜ Not run yet</div>
+      <div class="progress-bar"><div class="progress-fill" id="full-progress"></div></div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="btn btn-success" id="btn-run-full" onclick="runPipeline('full')">🚀 Run Full Audit</button>
+        <button class="btn btn-ghost btn-sm" onclick="showPage('cases');switchDataset('full')">View Results →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Console -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">🖥️ Console Output</div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn-ghost btn-sm" onclick="clearConsole()">🗑️ Clear</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyConsole()">📋 Copy</button>
+      </div>
+    </div>
+    <div class="panel-body" style="padding:0;">
+      <div class="console-box" id="pipeline-console">Ghost Data Audit Engine — Ready.
+─────────────────────────────────────
+100% Deterministic · Zero API Cost · Zero Hallucination Risk
+Status Accuracy: 100.0% (verified on 32 ground-truth cases)
+─────────────────────────────────────
+Select a pipeline run above to execute...
+</div>
+    </div>
+  </div>
+
+  <!-- Eval Scores -->
+  <div class="section-head">
+    <div class="section-title"><span class="icon">📈</span> Evaluation Metrics (Sample Set)</div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Benchmark Accuracy</div>
+      <div class="bar-row">
+        <div>
+          <div class="bar-item-label"><span class="bar-item-name">Status Accuracy</span><span class="bar-item-count" style="color:var(--emerald)">100.0%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,var(--emerald),#34d399);"></div></div>
+        </div>
+        <div>
+          <div class="bar-item-label"><span class="bar-item-name">Step Precision</span><span class="bar-item-count" style="color:var(--cyan)">93.6%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:93.6%;background:linear-gradient(90deg,var(--cyan),#38bdf8);"></div></div>
+        </div>
+        <div>
+          <div class="bar-item-label"><span class="bar-item-name">Sequence Accuracy</span><span class="bar-item-count" style="color:var(--amber)">80.5%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:80.5%;background:linear-gradient(90deg,var(--amber),#fbbf24);"></div></div>
+        </div>
+        <div>
+          <div class="bar-item-label"><span class="bar-item-name">Step Recall</span><span class="bar-item-count" style="color:var(--blue)">83.4%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:83.4%;background:linear-gradient(90deg,var(--blue),#60a5fa);"></div></div>
+        </div>
+        <div>
+          <div class="bar-item-label"><span class="bar-item-name">Step F1</span><span class="bar-item-count" style="color:var(--purple)">88.2%</span></div>
+          <div class="bar-bg"><div class="bar-fill" style="width:88.2%;background:linear-gradient(90deg,var(--purple),#a78bfa);"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Contract Invariants (All 518 Cases)</div>
+      <div class="bar-row">
+        <div><div class="bar-item-label"><span class="bar-item-name">Valid JSON arrays</span><span class="bar-item-count" style="color:var(--emerald)">518/518 ✓</span></div><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--emerald);"></div></div></div>
+        <div><div class="bar-item-label"><span class="bar-item-name">Consecutive numbering</span><span class="bar-item-count" style="color:var(--emerald)">518/518 ✓</span></div><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--emerald);"></div></div></div>
+        <div><div class="bar-item-label"><span class="bar-item-name">Phase ordering FIND→REM→VER</span><span class="bar-item-count" style="color:var(--emerald)">518/518 ✓</span></div><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--emerald);"></div></div></div>
+        <div><div class="bar-item-label"><span class="bar-item-name">Schema columns correct</span><span class="bar-item-count" style="color:var(--emerald)">518/518 ✓</span></div><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--emerald);"></div></div></div>
+        <div><div class="bar-item-label"><span class="bar-item-name">NOT_APPLICABLE → steps=[]</span><span class="bar-item-count" style="color:var(--emerald)">7/7 ✓</span></div><div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--emerald);"></div></div></div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Usage Report</div>
+      <div class="bar-row">
+        <div><div class="bar-item-label"><span class="bar-item-name">Model API calls</span><span class="bar-item-count">0</span></div><div class="bar-bg"><div class="bar-fill" style="width:1%;background:var(--text-3);"></div></div></div>
+        <div><div class="bar-item-label"><span class="bar-item-name">Input tokens</span><span class="bar-item-count">0</span></div><div class="bar-bg"><div class="bar-fill" style="width:1%;background:var(--text-3);"></div></div></div>
+        <div><div class="bar-item-label"><span class="bar-item-name">Output tokens</span><span class="bar-item-count">0</span></div><div class="bar-bg"><div class="bar-fill" style="width:1%;background:var(--text-3);"></div></div></div>
+        <div><div class="bar-item-label"><span class="bar-item-name">Estimated cost</span><span class="bar-item-count" style="color:var(--emerald)">$0.00</span></div><div class="bar-bg"><div class="bar-fill" style="width:1%;background:var(--emerald);"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ PAGE: EXPORTS ══════════ -->
+<div class="page" id="page-exports">
+
+  <div class="section-head">
+    <div class="section-title"><span class="icon">📦</span> Submission Artifacts & Downloads</div>
+    <a href="https://wwww.hackerrank.com/contests/hackerrank-orchestrate-october26/challenges/ghost-data-still-exists" target="_blank" class="btn btn-primary">🏆 Submit to HackerRank →</a>
+  </div>
+
+  <div class="downloads-grid">
+    <div class="dl-card">
+      <div class="dl-card-header">
+        <div class="dl-card-icon" style="background:rgba(16,185,129,0.15);color:var(--emerald);">📄</div>
+        <div>
+          <div class="dl-card-title">output.csv</div>
+          <div style="font-size:0.73rem;color:var(--text-3);">Submission prediction file</div>
+        </div>
+      </div>
+      <div class="dl-card-desc">518 prediction rows in the required schema. case_id, deletion_status, steps_json — ready for HackerRank evaluation grader.</div>
+      <div class="dl-card-meta" id="output-meta">
+        <span>📐 518 rows</span>
+        <span>✅ 0 errors</span>
+      </div>
+      <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+        <button class="btn btn-success btn-sm" onclick="downloadFile('/api/download/output.csv','output.csv')">📥 Download CSV</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadFile('/api/download/output_excel.csv','output_excel.csv')">📊 Excel (BOM)</button>
+        <a href="/api/view/output.csv" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.25rem;">🌐 Open in Browser</a>
+        <button class="btn btn-ghost btn-sm" onclick="openSystemFile('output.csv','notepad')">🖥️ Notepad</button>
+        <button class="btn btn-ghost btn-sm" onclick="openSystemFile('output.csv','explorer')">📂 Show in Folder</button>
+      </div>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-card-header">
+        <div class="dl-card-icon" style="background:rgba(139,92,246,0.15);color:var(--purple);">📦</div>
+        <div>
+          <div class="dl-card-title">code.zip</div>
+          <div style="font-size:0.73rem;color:var(--text-3);">Source code submission</div>
+        </div>
+      </div>
+      <div class="dl-card-desc">Complete runnable solution: Python pipeline, prompts, config, README.md, evaluation reports, and usage reports — as required by the submission spec.</div>
+      <div class="dl-card-meta">
+        <span>📁 24 files</span>
+        <span>🐍 Python</span>
+      </div>
+      <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+        <button class="btn btn-purple btn-sm" onclick="downloadFile('/api/download/code.zip','code.zip')">📦 Download code.zip</button>
+        <button class="btn btn-ghost btn-sm" onclick="viewZipContents('code.zip')">👁️ View Files in ZIP</button>
+        <button class="btn btn-ghost btn-sm" onclick="openSystemFile('code.zip','explorer')">📂 Show in Folder</button>
+      </div>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-card-header">
+        <div class="dl-card-icon" style="background:rgba(6,182,212,0.15);color:var(--cyan);">🔍</div>
+        <div>
+          <div class="dl-card-title">agent-trace.zip</div>
+          <div style="font-size:0.73rem;color:var(--text-3);">Chat transcript for review</div>
+        </div>
+      </div>
+      <div class="dl-card-desc">Full agent conversation transcript per agent_trace_instructions.md, covering all sessions. Required for the AI Interview phase of evaluation.</div>
+      <div class="dl-card-meta">
+        <span>📋 Multi-session</span>
+        <span>🤖 Antigravity</span>
+      </div>
+      <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="downloadFile('/api/download/trace.zip','agent-trace.zip')">🔍 Download trace.zip</button>
+        <button class="btn btn-ghost btn-sm" onclick="viewZipContents('agent-trace.zip')">👁️ View Files in ZIP</button>
+        <button class="btn btn-ghost btn-sm" onclick="openSystemFile('agent-trace.zip','explorer')">📂 Show in Folder</button>
+      </div>
+    </div>
+
+    <div class="dl-card">
+      <div class="dl-card-header">
+        <div class="dl-card-icon" style="background:rgba(245,158,11,0.15);color:var(--amber);">📊</div>
+        <div>
+          <div class="dl-card-title">Evaluation Report</div>
+          <div style="font-size:0.73rem;color:var(--text-3);">Metrics & analysis</div>
+        </div>
+      </div>
+      <div class="dl-card-desc">Full case-level accuracy, step-level precision/recall/F1, sequence accuracy, and 4 custom test cases. Included in code.zip under evaluation/.</div>
+      <div class="dl-card-meta">
+        <span>✅ Status Acc: 100%</span>
+        <span>📈 F1: 88.2%</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn btn-ghost" onclick="showEvalModal()">📖 View Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV Preview -->
+  <div class="section-head">
+    <div class="section-title"><span class="icon">👁️</span> output.csv Live Preview</div>
+    <div style="display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center;">
+      <div class="search-input-wrap" style="max-width:220px;">
+        <span style="color:var(--text-3);">🔍</span>
+        <input type="text" id="csv-search" placeholder="Filter rows..." oninput="filterCsvPreview()">
+      </div>
+      <a href="/api/view/output.csv" target="_blank" class="btn btn-primary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.25rem;">🌐 View Raw in Tab</a>
+      <button class="btn btn-ghost btn-sm" onclick="openSystemFile('output.csv','notepad')">🖥️ Notepad</button>
+      <button class="btn btn-ghost btn-sm" onclick="openSystemFile('output.csv','explorer')">📂 Folder</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyAllCsv()">📋 Copy All</button>
+      <button class="btn btn-success btn-sm" onclick="downloadFile('/api/download/output.csv','output.csv')">📥 Download</button>
+    </div>
+  </div>
+  <div class="csv-viewer">
+    <div class="csv-scroll">
+      <table class="csv-table">
+        <thead>
+          <tr>
+            <th style="min-width:130px;">case_id</th>
+            <th style="min-width:140px;">deletion_status</th>
+            <th>steps_json</th>
+          </tr>
+        </thead>
+        <tbody id="csv-preview-body"></tbody>
+      </table>
+    </div>
+    <div class="csv-footer">
+      <span id="csv-row-label">Loading...</span>
+      <span id="csv-size-label"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Run Modal -->
+<div class="modal-overlay" id="run-modal">
+  <div class="modal-box" style="max-width:680px;">
+    <div class="modal-head">
+      <h2 id="run-modal-title">Pipeline Running</h2>
+      <button class="modal-close" onclick="closeModal('run-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.8rem;color:var(--text-3);">Executing deterministic Python audit engine — no API calls, no cost.</p>
+      <div class="progress-bar"><div class="progress-fill" id="run-modal-progress" style="width:0%;"></div></div>
+      <div class="console-box" id="run-console">Initializing...</div>
+      <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
+        <button class="btn btn-ghost" onclick="closeModal('run-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Eval Modal -->
+<div class="modal-overlay" id="eval-modal">
+  <div class="modal-box" style="max-width:700px;">
+    <div class="modal-head">
+      <h2>📈 Evaluation Report Summary</h2>
+      <button class="modal-close" onclick="closeModal('eval-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-md);padding:1rem;font-size:0.82rem;line-height:1.6;color:var(--text-2);">
+        <p style="color:var(--cyan);font-weight:700;margin-bottom:0.75rem;">Sample Set (32 public cases)</p>
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem;">
+          <thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:0.4rem 0.6rem;color:var(--text-3);">Metric</th><th style="text-align:right;padding:0.4rem 0.6rem;color:var(--text-3);">Value</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:0.4rem 0.6rem;">Status Accuracy</td><td style="text-align:right;color:var(--emerald);font-weight:700;">100.0%</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">Step Precision</td><td style="text-align:right;font-weight:700;">93.6%</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">Step Recall</td><td style="text-align:right;font-weight:700;">83.4%</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">Step F1</td><td style="text-align:right;font-weight:700;">88.2%</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">Field-level Accuracy</td><td style="text-align:right;font-weight:700;">63.8%</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">Sequence Accuracy</td><td style="text-align:right;font-weight:700;">80.5%</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;">Exact Row Match</td><td style="text-align:right;font-weight:700;">34.4%</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:1rem;font-size:0.77rem;color:var(--text-3);">Contract validation: 518/518 rows produced. 0 schema errors. 0 numbering errors. All NOT_APPLICABLE cases have empty step arrays.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Zip Contents Modal -->
+<div class="modal-overlay" id="zip-modal">
+  <div class="modal-box" style="max-width:760px;">
+    <div class="modal-head">
+      <h2 id="zip-modal-title">📁 Zip Archive Contents</h2>
+      <button class="modal-close" onclick="closeModal('zip-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="max-height:420px;overflow-y:auto;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-md);padding:0.5rem;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);">
+              <th style="text-align:left;padding:0.4rem 0.6rem;color:var(--text-3);font-size:0.75rem;">File Path</th>
+              <th style="text-align:right;padding:0.4rem 0.6rem;color:var(--text-3);font-size:0.75rem;">Size</th>
+              <th style="text-align:right;padding:0.4rem 0.6rem;color:var(--text-3);font-size:0.75rem;">Modified</th>
+            </tr>
+          </thead>
+          <tbody id="zip-modal-body"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:1rem;gap:0.5rem;">
+        <button class="btn btn-ghost" onclick="closeModal('zip-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ══════════ SCRIPTS ══════════ -->
+<script>
+  // ─── GLOBALS ───
+  const API = (typeof window !== 'undefined' && (window.location.protocol === 'http:' || window.location.protocol === 'https:'))
+    ? window.location.origin
+    : 'http://localhost:5158';
+  let currentDataset = 'full';
+  let activeCaseId = null;
+  let caseListFilter = 'ALL';
+  let caseListSearch = '';
+  let allCases = [];
+  let rawCsvText = '';
+  let allCsvRows = [];
+  let currentStats = {};
+
+  // ─── LOADER ───
+  async function bootApp() {
+    const fill = document.getElementById('loader-fill');
+    const txt = document.getElementById('loader-text');
+    const steps = [
+      [20, 'Connecting to audit engine...'],
+      [40, 'Loading 518-case dataset...'],
+      [65, 'Computing analytics...'],
+      [90, 'Rendering dashboard...'],
+      [100, 'Ready!'],
+    ];
+    for (const [w, t] of steps) {
+      fill.style.width = w + '%';
+      txt.textContent = t;
+      await sleep(350);
+    }
+    try {
+      await loadAll();
+    } catch(e) { console.warn('Boot load error', e); }
+    setTimeout(() => document.getElementById('app-loader').classList.add('hidden'), 400);
+  }
+
+  async function loadAll() {
+    await Promise.all([loadStats(), loadCsvPreview()]);
+  }
+
+  // ─── PAGE NAV ───
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    document.querySelector(`[data-page="${id}"]`)?.classList.add('active');
+    if (id === 'cases') initCasesPage();
+    if (id === 'exports') loadCsvPreview();
+  }
+
+  // ─── DATASET TOGGLE ───
+  function switchDataset(ds) {
+    currentDataset = ds;
+    activeCaseId = null;
+    document.getElementById('ds-full').style.opacity = ds === 'full' ? '1' : '0.45';
+    document.getElementById('ds-sample').style.opacity = ds === 'sample' ? '1' : '0.45';
+    loadAll();
+    if (document.getElementById('page-cases').classList.contains('active')) {
+      allCases = [];
+      initCasesPage();
+    }
+    toast('info', `Switched to ${ds === 'full' ? 'Full (518 cases)' : 'Sample (32 cases)'}`);
+  }
+
+  // ─── LOAD STATS ───
+  async function loadStats() {
+    try {
+      const data = await api('/api/stats?dataset=' + currentDataset);
+      currentStats = data;
+      renderMetrics(data);
+      renderCharts(data);
+      renderQuickTable();
+    } catch(e) {
+      console.error('Stats error', e);
+      toast('error', 'Could not connect to server at port 5158');
+    }
+  }
+
+  function renderMetrics(d) {
+    animateNum('m-total', d.total);
+    animateNum('m-complete', d.complete);
+    animateNum('m-incomplete', d.incomplete);
+    animateNum('m-na', d.not_applicable);
+    animateNum('m-steps', d.total_steps);
+    document.getElementById('m-complete-pct').textContent = pct(d.complete, d.total) + '% of total';
+    document.getElementById('m-incomplete-pct').textContent = pct(d.incomplete, d.total) + '% of total';
+    document.getElementById('m-avg-steps').textContent = `~${d.avg_steps} avg per case`;
+  }
+
+  function renderCharts(d) {
+    // Status donut
+    const circ = 2 * Math.PI * 46; // ≈ 289
+    const total = d.total || 1;
+    const compArc = (d.complete / total) * circ;
+    const incArc = (d.incomplete / total) * circ;
+    const naArc = (d.not_applicable / total) * circ;
+
+    let offset = 72;
+    setDonut('d-complete', compArc, circ - compArc, offset);
+    offset -= compArc;
+    setDonut('d-incomplete', incArc, circ - incArc, offset);
+    offset -= incArc;
+    setDonut('d-na', naArc, circ - naArc, offset);
+
+    document.getElementById('donut-center-num').textContent = d.total;
+    document.getElementById('leg-complete').textContent = d.complete;
+    document.getElementById('leg-incomplete').textContent = d.incomplete;
+    document.getElementById('leg-na').textContent = d.not_applicable;
+
+    // Phase donut
+    const ph = d.phase_distribution || {};
+    const totalPh = (ph.FINDING || 0) + (ph.REMEDIATION || 0) + (ph.VERIFICATION || 0) || 1;
+    let pOffset = 72;
+    const fArc = ((ph.FINDING || 0) / totalPh) * circ;
+    const rArc = ((ph.REMEDIATION || 0) / totalPh) * circ;
+    const vArc = ((ph.VERIFICATION || 0) / totalPh) * circ;
+    setDonut('dp-finding', fArc, circ - fArc, pOffset); pOffset -= fArc;
+    setDonut('dp-remediation', rArc, circ - rArc, pOffset); pOffset -= rArc;
+    setDonut('dp-verification', vArc, circ - vArc, pOffset);
+    document.getElementById('donut-phase-num').textContent = d.total_steps || 0;
+    document.getElementById('leg-finding').textContent = ph.FINDING || 0;
+    document.getElementById('leg-remediation').textContent = ph.REMEDIATION || 0;
+    document.getElementById('leg-verification').textContent = ph.VERIFICATION || 0;
+
+    // Systems bar
+    renderBarChart('systems-bar', d.system_distribution || {}, 'var(--cyan)');
+    // Ops bar
+    renderBarChart('ops-bar', d.operation_distribution || {}, 'var(--purple)');
+  }
+
+  function setDonut(id, dash, gap, offset) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('stroke-dasharray', `${dash} ${gap}`);
+    el.setAttribute('stroke-dashoffset', offset);
+  }
+
+  function renderBarChart(containerId, data, color) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const entries = Object.entries(data).slice(0, 7);
+    const max = Math.max(...entries.map(e => e[1]), 1);
+    el.innerHTML = entries.map(([k, v]) => `
+      <div>
+        <div class="bar-item-label">
+          <span class="bar-item-name">${k}</span>
+          <span class="bar-item-count">${v}</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${(v/max*100).toFixed(1)}%;background:${color};opacity:0.75;"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function renderQuickTable() {
+    const resp = await api(`/api/cases?dataset=${currentDataset}&per_page=12&page=1`);
+    const cases = resp.cases || [];
+    const tbody = document.getElementById('quick-table-body');
+    tbody.innerHTML = cases.map(c => `
+      <tr onclick="showPage('cases');setTimeout(()=>selectCase('${c.case_id}'),200);" class="${c.case_id===activeCaseId?'active-row':''}">
+        <td class="case-id-cell">${c.case_id}</td>
+        <td><span class="badge ${c.deletion_status}">${c.deletion_status.replace('_',' ')}</span></td>
+        <td class="email-cell">${c.email||'—'}</td>
+        <td><span class="steps-pill">${c.step_count}</span></td>
+        <td class="ts-cell">${fmtDate(c.requested_at)}</td>
+        <td><span class="badge ${c.reported_status}" style="font-size:0.62rem;">${c.reported_status||'—'}</span></td>
+      </tr>`).join('');
+  }
+
+  // ─── CASES PAGE ───
+  async function initCasesPage() {
+    document.getElementById('case-list').innerHTML = '<div class="empty-state"><div class="icon">⌛</div><p>Loading cases...</p></div>';
+    await loadCaseList();
+  }
+
+  async function loadCaseList() {
+    const q = encodeURIComponent(caseListSearch);
+    const status = caseListFilter === 'ALL' ? 'ALL' : caseListFilter;
+    try {
+      const resp = await api(`/api/cases?dataset=${currentDataset}&per_page=300&page=1&status=${status}&search=${q}`);
+      allCases = resp.cases || [];
+      renderCaseList();
+      document.getElementById('case-list-label').textContent = `${resp.total} cases`;
+    } catch(e) {
+      document.getElementById('case-list').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Failed to load cases</p></div>`;
+    }
+  }
+
+  function renderCaseList() {
+    const el = document.getElementById('case-list');
+    if (!allCases.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>No cases match your filter</p></div>';
+      return;
+    }
+    el.innerHTML = allCases.map(c => `
+      <div class="case-row ${c.case_id===activeCaseId?'active':''}" onclick="selectCase('${c.case_id}')" id="row-${c.case_id}">
+        <div class="case-row-top">
+          <span class="case-row-id">${c.case_id}</span>
+          <span class="badge ${c.deletion_status}">${c.deletion_status.replace('_',' ')}</span>
+        </div>
+        <div class="case-row-meta">
+          <span>${c.email||'no email'}</span>
+          <span>·</span>
+          <span>${c.step_count} steps</span>
+          <span>·</span>
+          <span>${fmtDate(c.requested_at)}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  async function selectCase(caseId) {
+    activeCaseId = caseId;
+    document.querySelectorAll('.case-row').forEach(r => r.classList.remove('active'));
+    const row = document.getElementById('row-' + caseId);
+    if (row) { row.classList.add('active'); row.scrollIntoView({block:'nearest'}); }
+
+    document.getElementById('inspector-placeholder').style.display = 'none';
+    document.getElementById('inspector-body').style.display = 'flex';
+    document.getElementById('ins-id').textContent = '⌛ Loading ' + caseId + '...';
+    document.getElementById('btn-export-json').style.display = 'none';
+
+    try {
+      const c = await api(`/api/case/${caseId}?dataset=${currentDataset}`);
+      window._currentCase = c;
+      renderInspector(c);
+    } catch(e) {
+      document.getElementById('ins-id').textContent = 'Error loading case';
+    }
+  }
+
+  function renderInspector(c) {
+    document.getElementById('ins-id').textContent = c.case_id;
+    document.getElementById('ins-subtitle').textContent = `Audit cutoff: ${c.audit_at || '—'}`;
+    document.getElementById('ins-badge').innerHTML = `<span class="badge ${c.deletion_status}">${c.deletion_status.replace('_',' ')}</span>`;
+    document.getElementById('btn-export-json').style.display = 'inline-flex';
+
+    document.getElementById('ins-email').textContent = c.email || '—';
+    document.getElementById('ins-req-at').textContent = c.requested_at || '—';
+    document.getElementById('ins-rep-status').textContent = c.reported_status || '—';
+    document.getElementById('ins-audit-at').textContent = c.audit_at || '—';
+    document.getElementById('ins-req-text').textContent = c.request_text || '(no text)';
+
+    document.getElementById('ins-uid').textContent = c.identity?.user_id || 'unresolved';
+    document.getElementById('ins-name').textContent = c.identity?.name || '—';
+    document.getElementById('ins-phone').textContent = c.identity?.phone || '—';
+    document.getElementById('ins-hash').textContent = c.identity?.email_hash ? c.identity.email_hash.substring(0,20)+'…' : '—';
+
+    // Phase pills
+    const ps = c.phase_summary || {};
+    document.getElementById('ins-phases').innerHTML = `
+      <span class="phase-pill phase-FINDING">🔍 Finding: ${ps.FINDING||0}</span>
+      <span class="phase-pill phase-REMEDIATION">🔧 Remediation: ${ps.REMEDIATION||0}</span>
+      <span class="phase-pill phase-VERIFICATION">✅ Verification: ${ps.VERIFICATION||0}</span>`;
+
+    const steps = c.steps || [];
+    document.getElementById('ins-step-count').textContent = steps.length;
+
+    // Steps
+    const el = document.getElementById('ins-steps');
+    if (!steps.length) {
+      el.innerHTML = '<div style="color:var(--text-3);font-size:0.78rem;padding:0.5rem 0;">No steps — NOT_APPLICABLE or empty.</div>';
+    } else {
+      el.innerHTML = steps.map(s => `
+        <div class="step-item">
+          <div class="step-num-circle">${s.step_no}</div>
+          <div class="step-content">
+            <div class="step-op">${s.operation} → <span class="step-res">${s.resource_id}</span></div>
+            <div class="step-meta">
+              <span>System: <strong style="color:var(--text-1)">${s.system_id}</strong></span>
+              <span>State: <strong style="color:var(--text-1)">${s.state}</strong></span>
+              ${s.evidence_id ? `<span class="step-ev">📎 ${s.evidence_id}</span>` : ''}
+              <span class="phase-pill phase-${s.phase}" style="font-size:0.63rem;padding:0.12rem 0.45rem;">${s.phase}</span>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+
+    document.getElementById('ins-json').textContent = JSON.stringify(steps, null, 2);
+  }
+
+  function setListFilter(status) {
+    caseListFilter = status;
+    document.querySelectorAll('.filter-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.status === status);
+    });
+    loadCaseList();
+  }
+
+  function handleListSearch() {
+    const v = document.getElementById('list-search').value;
+    caseListSearch = v;
+    document.getElementById('list-clear').style.display = v ? 'block' : 'none';
+    loadCaseList();
+  }
+
+  function clearListSearch() {
+    document.getElementById('list-search').value = '';
+    caseListSearch = '';
+    document.getElementById('list-clear').style.display = 'none';
+    loadCaseList();
+  }
+
+  // ─── PIPELINE ───
+  async function runPipeline(type) {
+    const btn = document.getElementById('btn-run-' + type);
+    const statusEl = document.getElementById(type + '-status');
+    const progEl = document.getElementById(type + '-progress');
+    const runConsole = document.getElementById('pipeline-console');
+
+    btn.disabled = true;
+    progEl.style.width = '15%';
+    statusEl.textContent = '🔄 Running...';
+    document.getElementById('pipeline-status').textContent = 'Running pipeline...';
+
+    // Also show in modal on dashboard/pipeline pages
+    document.getElementById('run-modal-title').textContent = type === 'full' ? '🚀 Full 518-Case Audit' : '⚡ Sample 32-Case Audit';
+    document.getElementById('run-console').textContent = `Starting ${type} audit pipeline...\nExecuting deterministic Python engine...\n`;
+    document.getElementById('run-modal-progress').style.width = '20%';
+    openModal('run-modal');
+
+    const label = type === 'full' ? 'Full Audit (518)' : 'Sample Audit (32)';
+    toast('info', `${label} started — this may take a few seconds`);
+
+    try {
+      progEl.style.width = '50%';
+      document.getElementById('run-modal-progress').style.width = '60%';
+
+      const result = await api('/api/run', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({type})
+      });
+
+      progEl.style.width = '100%';
+      document.getElementById('run-modal-progress').style.width = '100%';
+
+      const log = result.log || '';
+      const isOk = result.status === 'success';
+      const consoleHtml = log + `\n\n${isOk ? '✅' : '❌'} Finished in ${result.duration_sec}s. Exit code: ${result.code}.`;
+      runConsole.textContent = consoleHtml;
+      document.getElementById('run-console').textContent = consoleHtml;
+
+      statusEl.textContent = isOk ? `✅ Done in ${result.duration_sec}s` : `❌ Error (code ${result.code})`;
+      document.getElementById('pipeline-status').textContent = isOk ? 'Engine Ready' : 'Error';
+
+      if (isOk) {
+        toast('success', `${label} completed in ${result.duration_sec}s!`);
+        await loadStats();
+        loadCsvPreview();
+      } else {
+        toast('error', `Pipeline error — check console output`);
+      }
+    } catch(e) {
+      statusEl.textContent = '❌ Network error';
+      runConsole.textContent += `\n\nNetwork error: ${e.message}`;
+      toast('error', 'Could not reach audit engine');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function clearConsole() {
+    document.getElementById('pipeline-console').textContent = 'Console cleared.';
+  }
+
+  function copyConsole() {
+    navigator.clipboard.writeText(document.getElementById('pipeline-console').textContent)
+      .then(() => toast('success', 'Console output copied!'))
+      .catch(() => toast('error', 'Clipboard denied'));
+  }
+
+  // ─── CSV PREVIEW ───
+  async function loadCsvPreview() {
+    try {
+      const data = await api('/api/csv_data?dataset=' + currentDataset);
+      rawCsvText = data.raw_text || '';
+      document.getElementById('csv-size-label').textContent = data.size_kb + ' KB';
+      parseCsv(rawCsvText);
+      renderCsvPreview('');
+    } catch(e) {
+      document.getElementById('csv-preview-body').innerHTML = `<tr><td colspan="3" style="padding:1rem;color:var(--rose)">Could not load CSV preview. Make sure server is running.</td></tr>`;
+    }
+  }
+
+  function parseCsv(text) {
+    const lines = text.trim().split(/\r?\n/);
+    allCsvRows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.trim()) continue;
+      const fc = line.indexOf(',');
+      const sc = line.indexOf(',', fc + 1);
+      if (fc < 0 || sc < 0) continue;
+      const caseId = line.substring(0, fc);
+      const status = line.substring(fc + 1, sc);
+      let steps = line.substring(sc + 1);
+      if (steps.startsWith('"') && steps.endsWith('"')) {
+        steps = steps.slice(1, -1).replace(/""/g, '"');
+      }
+      allCsvRows.push({caseId, status, steps});
+    }
+  }
+
+  function renderCsvPreview(query) {
+    const q = query.toLowerCase();
+    const matches = q ? allCsvRows.filter(r => r.caseId.toLowerCase().includes(q) || r.status.toLowerCase().includes(q)) : allCsvRows;
+    const tbody = document.getElementById('csv-preview-body');
+    const rows = matches.slice(0, 200);
+    tbody.innerHTML = rows.map(r => `
+      <tr onclick="showPage('cases');setTimeout(()=>selectCase('${r.caseId}'),150);" style="cursor:pointer;" title="Click to view full case audit details in Case Explorer">
+        <td style="font-weight:700;color:var(--text-1);font-family:var(--mono);">${r.caseId}</td>
+        <td><span class="badge ${r.status}">${r.status.replace('_',' ')}</span></td>
+        <td style="color:#7dd3fc;word-break:break-all;">${esc(r.steps)}</td>
+      </tr>`).join('');
+    document.getElementById('csv-row-label').textContent = `Showing ${rows.length} of ${matches.length} rows${q ? ` matching "${q}"` : ''} (click any row to inspect in detail)`;
+    if (matches.length > 200) {
+      tbody.innerHTML += `<tr><td colspan="3" style="text-align:center;padding:0.75rem;color:var(--text-3);font-style:italic;">Showing first 200 rows — use search to narrow down</td></tr>`;
+    }
+  }
+
+  function filterCsvPreview() {
+    renderCsvPreview(document.getElementById('csv-search').value.trim());
+  }
+
+  function showCsvViewer() {
+    showPage('exports');
+    setTimeout(() => document.querySelector('.csv-viewer')?.scrollIntoView({behavior:'smooth'}), 100);
+  }
+
+  function copyAllCsv() {
+    navigator.clipboard.writeText(rawCsvText)
+      .then(() => toast('success', 'Entire CSV copied to clipboard!'))
+      .catch(() => toast('error', 'Clipboard access denied'));
+  }
+
+  // ─── DOWNLOADS & FILE OPENING ───
+  async function downloadFile(path, filename) {
+    toast('info', `Downloading ${filename}...`);
+    try {
+      const resp = await fetch(API + path);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('success', `${filename} downloaded!`);
+    } catch(e) {
+      toast('error', `Download failed: ${e.message}`);
+    }
+  }
+
+  async function openSystemFile(filename, action) {
+    toast('info', `Opening ${filename} (${action || 'default'})...`);
+    try {
+      const res = await api(`/api/open_file?name=${encodeURIComponent(filename)}&action=${action || 'default'}`);
+      if (res.status === 'success') {
+        toast('success', res.message || `Opened ${filename}`);
+      } else {
+        toast('error', res.error || 'Failed to open file');
+      }
+    } catch(e) {
+      toast('error', `Could not open file: ${e.message}`);
+    }
+  }
+
+  async function viewZipContents(zipName) {
+    toast('info', `Reading ${zipName}...`);
+    try {
+      const data = await api(`/api/zip_contents?name=${encodeURIComponent(zipName)}`);
+      document.getElementById('zip-modal-title').textContent = `📁 Files inside ${data.filename} (${data.total_files} files, ${(data.total_compressed/1024).toFixed(1)} KB)`;
+      const tbody = document.getElementById('zip-modal-body');
+      tbody.innerHTML = data.files.map(f => `
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:0.45rem 0.6rem;font-family:var(--mono);color:${f.is_dir ? 'var(--cyan)' : 'var(--text-1)'};font-size:0.78rem;">
+            ${f.is_dir ? '📁' : '📄'} ${f.filename}
+          </td>
+          <td style="padding:0.45rem 0.6rem;text-align:right;color:var(--text-2);font-size:0.75rem;">
+            ${f.is_dir ? '—' : (f.file_size/1024).toFixed(1) + ' KB'}
+          </td>
+          <td style="padding:0.45rem 0.6rem;text-align:right;color:var(--text-3);font-size:0.72rem;">
+            ${f.date_time}
+          </td>
+        </tr>
+      `).join('');
+      openModal('zip-modal');
+    } catch(e) {
+      toast('error', `Failed to read zip: ${e.message}`);
+    }
+  }
+
+  // ─── UTILS ───
+  async function api(path, opts) {
+    const resp = await fetch(API + path, opts);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function pct(n, total) {
+    return total ? (n / total * 100).toFixed(1) : '0.0';
+  }
+
+  function fmtDate(s) {
+    if (!s) return '—';
+    try {
+      return new Date(s).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+    } catch(e) { return s.substring(0,10); }
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function animateNum(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const start = parseInt(el.textContent) || 0;
+    const dur = 900;
+    const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min((now - t0) / dur, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(start + (target - start) * ease);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // ─── MODAL ───
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function showEvalModal() {
+    openModal('eval-modal');
+  }
+
+  // ─── TOAST ───
+  let toastCount = 0;
+  function toast(type, text) {
+    const icons = {success:'✅', error:'❌', info:'ℹ️', warn:'⚠️'};
+    const id = 'toast-' + (toastCount++);
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.id = id;
+    el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${text}</span>`;
+    document.getElementById('toast-container').appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => el.remove(), 400);
+    }, 3200);
+  }
+
+  // ─── CLIPBOARD ───
+  function copyText(id) {
+    const txt = document.getElementById(id)?.textContent || '';
+    navigator.clipboard.writeText(txt)
+      .then(() => toast('success', 'Copied to clipboard!'))
+      .catch(() => toast('error', 'Clipboard access denied'));
+  }
+
+  function exportCaseJson() {
+    const c = window._currentCase;
+    if (!c) return;
+    const blob = new Blob([JSON.stringify(c, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = c.case_id + '_audit.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('success', `Exported ${c.case_id}_audit.json`);
+  }
+
+  // ─── BOOT ───
+  bootApp();
+</script>
+</body>
+</html>

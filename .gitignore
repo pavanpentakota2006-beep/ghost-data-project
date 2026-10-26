@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+dataset/
+sample_pred.csv
+agent-trace/
+*.zip
+.DS_Store

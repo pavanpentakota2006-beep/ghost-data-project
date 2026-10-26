@@ -1,0 +1,2 @@
+# Standard library only; nothing to install.
+# Optional system tools for PDF/image evidence: pdftotext (poppler-utils), tesseract-ocr

@@ -1,0 +1,12 @@
+[project]
+name = "ghost-data-audit"
+version = "1.0.0"
+description = "Deletion audit agent: proves whether a user's personal data is truly gone"
+requires-python = ">=3.9"
+dependencies = []  # standard library only
+
+[tool.ruff]
+line-length = 130
+
+[tool.pyright]
+extraPaths = ["code", "code/evaluation"]
